@@ -1,5 +1,5 @@
 from flask import Flask,render_template,session,redirect,url_for,flash
-from flask_script import Manager，Shell
+from flask_script import Manager,Shell
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from datetime import datetime
@@ -50,7 +50,7 @@ class User(db.Model):
 # 实现自动导入
 def make_shell_context():
     return dict(app=app,db=db,User=User,Role=Role)
-Manager.add_command("shell",Shell(make_context=make_shell_context))
+manager.add_command("shell",Shell(make_context=make_shell_context))
 
 @app.route('/',methods=['GET','POST'])
 def index():
