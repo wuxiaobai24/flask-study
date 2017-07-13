@@ -29,7 +29,10 @@
  > pip install flask-wtf
 
  > pip install flask-sqlalchemy
+<<<<<<< HEAD
 
- > pip install flask-migrate
+ > pip install flask_migrate
 
  > pip install flask-email
+=======
+>>>>>>> 43459a7e78ad98f3cc7a42820db3cfbcc02846f9
