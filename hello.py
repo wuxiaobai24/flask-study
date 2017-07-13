@@ -8,6 +8,7 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate,MigrateCommand
+from flask_mail import Mail,Message
 import os
 
 
@@ -19,6 +20,20 @@ app.config['SQLALCHEMY_DATABASE_URI']=\
     'sqlite:///' + os.path.join(basedir,'data.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+
+# for mail
+app.config['MAIL_SERVER'] = 'smtp.163.com'
+app.config['MAIL_PORT'] = '25'
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+# 在命令行下定义两个这两个变量
+# > export MAIL_USERNAME=<GMail username>
+# > export MAIL_PASSWORD=<GMail password>
+
+#初始化mail
+mail = Mail(app)
+
 db = SQLAlchemy(app)
 manager = Manager(app)
 bootstrap = Bootstrap(app)
@@ -48,11 +63,18 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.username
 
+#测试mail
+def send_mail():
+    msg = Message('subject',sender = app.config['MAIL_USERNAME'],
+                    recipients=['wuxiaobai24@163.com'])
+    msg.body='test body'
+    msg.html='<b>HTML</b> body'
+    mail.send(msg)
 
 # 集成Python Shell
 # 实现自动导入
 def make_shell_context():
-    return dict(app=app,db=db,User=User,Role=Role)
+    return dict(app=app,db=db,User=User,Role=Role,mail=mail,send_mail=send_mail)
 manager.add_command("shell",Shell(make_context=make_shell_context))
 
 @app.route('/',methods=['GET','POST'])
@@ -85,6 +107,7 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_server_error(e):
     return render_template('500.html'), 500
+
 
 if __name__ == '__main__':
     #app.run(debug=True)
