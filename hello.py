@@ -9,6 +9,7 @@ from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
 import os
 
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
@@ -31,8 +32,7 @@ class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique = True)
-    users = db.relationship('User',backref='role')
-
+    users = db.relationship('User',backref='role', lazy='dynamic')
     def __repr__(self):
         return '<Role %r>' % self.name
 
@@ -50,14 +50,18 @@ def index():
     #name = None
     form = NameForm()
     if form.validate_on_submit():
-        #name = form.name.data
-        #form.name.data = ''
-        old_name = session.get('name')
-        if old_name is not None and old_name != form.name.data:
-            flash('Looks like you have changed your name!')
+        user = User.query.filter_by(username=form.name.data).first()
+        if user is None:
+            user = User(username = form.name.data)
+            db.session.add(user)
+            session['known'] = False
+        else:
+            session['known'] = True
         session['name'] = form.name.data
+        form.name.data=''
         return redirect(url_for('index'))
     return render_template('index.html',form=form,name = session.get('name'),
+                        known = session.get('known',False),
                         current_time=datetime.utcnow())
 
 @app.route('/user/<name>')
@@ -75,4 +79,3 @@ def internal_server_error(e):
 if __name__ == '__main__':
     #app.run(debug=True)
     manager.run()
-
