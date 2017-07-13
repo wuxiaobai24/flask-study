@@ -10,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate,MigrateCommand
 from flask_mail import Mail,Message
 import os
-
+from threading import Thread
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -33,7 +33,7 @@ app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 
 app.config['FLASKY_MAIL_SUBJECT_PREFIX'] = '[Flasky]' #主题的前缀
 app.config['FLASKY_MAIL_SENDER'] = 'wuxiaobai24@163.com' #发件人地址
-app.config['FLASKY_ADMIN'] = os.environ.get('FLASKY_ADMIN')
+app.config['FLASKY_ADMIN'] = os.environ.get('FLASKY_ADMIN') #Admin的邮箱地址，如果为空，则不会发送
 
 #初始化mail
 mail = Mail(app)
@@ -75,13 +75,22 @@ def text_send_mail():
     msg.html='<b>HTML</b> body'
     mail.send(msg)
 
+#实现异步发生Mail
+def send_async_email(app,msg):
+    with app.app_context():
+        mail.send(msg)
+
 #kwargs is keywords
 def send_mail(to,subject,template,**kwargs):
     msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + subject,
                 sender = app.config['FLASKY_MAIL_SENDER'], recipients=[to])
     msg.body = render_template(template + '.txt', **kwargs)
     msg.html = render_template(template + '.html', **kwargs)
-    mail.send(msg)
+    #mail.send(msg)
+    thr = Thread(target=send_async_email,args=[app,msg])
+    thr.start()
+    return thr
+
 
 # 集成Python Shell
 # 实现自动导入
