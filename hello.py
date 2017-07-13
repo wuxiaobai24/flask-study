@@ -7,6 +7,7 @@ from flask_wtf import Form
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate,MigrateCommand
 import os
 
 
@@ -22,6 +23,8 @@ db = SQLAlchemy(app)
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
+migrate = Migrate(app,db)
+manager.add_command('db',MigrateCommand)
 
 class NameForm(Form):
     name = StringField('what is your name?',validators=[Required()])
