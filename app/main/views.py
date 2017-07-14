@@ -7,6 +7,7 @@ from .. import db
 from ..models import User
 from ..emails import send_mail
 
+
 @main.route('/',methods=['GET','POST'])
 def index():
     #current_app.config['SECRET_KEY'] = 'wuxiaobai24'
