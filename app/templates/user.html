@@ -8,4 +8,8 @@
 <div class="page-header">
     <h1>Hello,{{ name }}!</h1>
 </div>
+<p>
+  Do you want to change your password?
+  <a href="{{ url_for('auth.change_password') }}">Click here!</a>
+  </p>
 {% endblock %}

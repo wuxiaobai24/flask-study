@@ -14,9 +14,9 @@ class RegistrationForm(FlaskForm):
     email = StringField('Email', validators = [Required(),Length(1,64),Email()])
 
     username  = StringField('Username',validators = [
-        Required(),Length(1,64)])#,Regexp('^[A-Za-z][A-Za-z0-9_.]*S',0,
-            #'Usernames must have only letters, '
-            #'numbers, dots or underscores')])
+        Required(),Length(1,64),Regexp('^[A-Za-z][A-Za-z0-9_.]*S',0,
+            'Usernames must have only letters, '
+            'numbers, dots or underscores')])
     password = PasswordField('Password',validators = [
         Required(),EqualTo('password2',message='Passwords must match.')])
     password2 = PasswordField('Comfirm password',validators = [Required()] )
@@ -29,3 +29,12 @@ class RegistrationForm(FlaskForm):
     def validate_username(self,field):
         if User.query.filter_by(username=field.data).first():
             raise ValidationError('Username already in use.')
+
+class ChangePasswordForm(FlaskForm):
+    oldpassword = PasswordField('Old Password',validators = [Required(),
+        Length(1,64)])
+    newpassword = PasswordField('New Password',validators = [Required(),
+        Length(1,64),EqualTo('newpassword2','New passwords must match.')])
+    newpassword2 = PasswordField('Confirm password',validators = [Required(),
+        Length(1,64)])
+    submit = SubmitField('Change Password')

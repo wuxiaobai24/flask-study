@@ -3,7 +3,7 @@ from flask_login import login_user,logout_user
 from . import auth
 from ..models import User
 from flask_login import login_required,current_user
-from .forms import LoginForm,RegistrationForm
+from .forms import LoginForm,RegistrationForm,ChangePasswordForm
 from .. import db
 from ..emails import send_mail
 # 保护路由
@@ -88,3 +88,16 @@ def resend_confirmation():
             'auth/email/confirm',user=current_user,token=token)
     flash('A new confirmation email has been sent to you by email.')
     return redirect(url_for('main.index'))
+
+#修改密码
+@auth.route('/change_password',methods=['POST','GET'])
+@login_required
+def change_password():
+    print('change_password')
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        current_user.password = form.newpassword.data
+        db.session().commit()
+        flash('Chang Password Success!')
+        return redirect(url_for('main.index'))
+    return render_template('auth/change_password.html',form=form)

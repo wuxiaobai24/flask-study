@@ -35,6 +35,7 @@ def index():
 def user(name):
     return render_template('user.html',name=name)
 
+#测试使用
 @main.route('/email')
 def email():
     text_send_mail()
