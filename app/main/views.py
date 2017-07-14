@@ -5,7 +5,7 @@ from . import main
 from .forms import NameForm
 from .. import db
 from ..models import User
-from ..emails import send_mail
+from ..emails import send_mail,text_send_mail
 
 
 @main.route('/',methods=['GET','POST'])
@@ -34,3 +34,8 @@ def index():
 @main.route('/user/<name>')
 def user(name):
     return render_template('user.html',name=name)
+
+@main.route('/email')
+def email():
+    text_send_mail()
+    return redirect(url_for('.index'))

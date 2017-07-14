@@ -12,8 +12,9 @@ class Config:
     FLASKY_MAIL_SENDER  = 'wuxiaobai24@163.com' #发件人地址
     FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN') #Admin的邮箱地址，如果为空，则不会发送
     MAIL_SERVER = 'smtp.163.com'
-    MAIL_PORT = '25'
-    MAIL_USE_TLS  = True
+    MAIL_PORT = 994
+    MAIL_USE_TLS  = False
+    MAIL_USE_SSL = True
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
 
