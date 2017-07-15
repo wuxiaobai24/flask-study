@@ -2,14 +2,15 @@ from app import db
 from flask import current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import login_manager
-from flask_login import UserMixin
+from flask_login import UserMixin,AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer  as Serializer
+from datetime import datetime
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id)  )
 
-class Permissions:
+class Permission:
     FOLLOW = 0x01
     COMMIT = 0x02
     WRITE_ARTICLES = 0x04
@@ -21,26 +22,26 @@ class Role(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique = True)
     default = db.Column(db.Boolean,default=False,index=True)
-    permissions = db.Column(db.Integer)
+    permission = db.Column(db.Integer)
     users = db.relationship('User',backref='role', lazy='dynamic')
 
     @staticmethod
     def insert_roles():
         roles = {
-            'User':(Permissions.FOLLOW |
-                    Permissions.COMMIT |
-                    Permissions.WRITE_ARTICLES, True),
-            'Moderator':(Permissions.FOLLOW |
-                        Permissions.COMMIT |
-                        Permissions.WRITE_ARTICLES |
-                        Permissions.MODERATE_COMMENTS,False),
+            'User':(Permission.FOLLOW |
+                    Permission.COMMIT |
+                    Permission.WRITE_ARTICLES, True),
+            'Moderator':(Permission.FOLLOW |
+                        Permission.COMMIT |
+                        Permission.WRITE_ARTICLES |
+                        Permission.MODERATE_COMMENTS,False),
             'Administrator':(0xff,False)
         }
         for r in roles:
             role = Role.query.filter_by(name=r).first()
             if role is None:
                 role = Role(name=r)
-            role.permissions = roles[r][0]
+            role.permission = roles[r][0]
             role.default = roles[r][1]
             db.session.add(role)
         db.session.commit()
@@ -50,12 +51,39 @@ class Role(db.Model):
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(64),unique=True, index=True)
-    username = db.Column(db.String(64),unique=True, index = True)
-    role_id = db.Column(db.Integer,db.ForeignKey('roles.id'))
-    password_hash = db.Column(db.String(128))
-    confirmed = db.Column(db.Boolean,default=False)
+    id = db.Column(db.Integer, primary_key=True) #id 主键
+    email = db.Column(db.String(64),unique=True, index=True) #邮箱
+    username = db.Column(db.String(64),unique=True, index = True) # 昵称
+    role_id = db.Column(db.Integer,db.ForeignKey('roles.id')) #role_id,外键
+    password_hash = db.Column(db.String(128)) # 密码的hash值
+    confirmed = db.Column(db.Boolean,default=False) #账户是否确认，用在认证中
+    name = db.Column(db.String(64)) #真实姓名
+    location = db.Column(db.String(64)) #住址
+    about_me = db.Column(db.Text()) #介绍
+    #db.Column的default可以接受函数，每次要生成default值是调用函数来生成
+    member_since = db.Column(db.DateTime(),default=datetime.utcnow)#注册时间
+    last_seen = db.Column(db.DateTime(),default=datetime.utcnow)#最后访问的时间
+
+    def ping(self):
+        """刷新用户最后访问的时间"""
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
+        db.session.commit()
+
+    def __init__(self,**kwargs):
+        super(User,self).__init__(**kwargs)
+        if self.role is None:
+            if self.role is current_app.config['FLASKY_ADMIN']:
+                self.role is Role.query.filter_by(permission=0xff).first()
+            if self.role is None:
+                self.role = Role.query.filter_by(default=True).first()
+
+    def can(self,permission):
+        return self.role is not None and \
+                (self.role.permission & permission) == permission
+
+    def is_administrator(self):
+        return self.can(Permission.ADMINSTER)
 
     @property
     def password(self):
@@ -87,3 +115,13 @@ class User(UserMixin, db.Model):
         db.session.add(self)
         db.session.commit()
         return True
+
+
+# 匿名访问者
+class AnonymousUser(AnonymousUserMixin):
+    def can(self,permission):
+        return False
+    def is_administrator(self):
+        return False
+
+login_manager.anonymous_user = AnonymousUser

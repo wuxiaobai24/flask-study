@@ -48,6 +48,7 @@ def register():
                 'auth/email/confirm',user=user,token=token)
         flash('A confirm email has been sent to you by email.')
         return redirect(url_for('main.index'))
+    print(form.username.data)
     return render_template('auth/register.html',form=form)
 
 #Confirm 路由
@@ -62,8 +63,12 @@ def confirm(token):
         flash('The confirmation link is invaild or has expired.')
     return redirect(url_for('main.index'))
 
+
+#before_request钩子,注册的函数在每次请求之前运行
+# 对蓝本来说，before_requese钩子只能应用到属于的蓝本的请求上
+# 若想在蓝本中使用针对程序全局请求的钩子必须使用before_qpp_request
 # 限制未确认用户的行为
-@auth.before_app_request
+@auth.before_app_request    #请求钩子
 def befor_request():
     if current_user.is_authenticated \
         and not current_user.confirmed \
@@ -155,3 +160,14 @@ def reset_password_now(name):
             return redirect(url_for('auth.login'))
 
         return render_template('auth/reset_password_now.html',form = form)
+
+
+# 更新已登录用户的最后的访问时间
+# 只针对auth的请求
+@auth.before_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.ping()
+        if not current_user.confirmed \
+            and request.endpoint[:5] != 'auth.':
+            return redirect(url_for('auth.unconfirmed'))

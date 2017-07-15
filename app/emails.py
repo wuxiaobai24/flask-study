@@ -6,6 +6,7 @@ from . import mail
 #测试mail
 def text_send_mail():
     print(current_app.config['MAIL_USERNAME'])
+    print(current_app.config['MAIL_PASSWORD'])
     msg = Message('subject',sender = current_app.config['MAIL_USERNAME'],
                     recipients=['wuxiaobai24@163.com'])
     msg.body='test body'
@@ -18,7 +19,7 @@ def send_async_email(app,msg):
     with app.app_context():
         mail.send(msg)
 
-#kwargs is keywords
+#kwargs is keywords 字典
 def send_mail(to,subject,template,**kwargs):
     msg = Message(current_app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + subject,
                 sender = current_app.config['FLASKY_MAIL_SENDER'], recipients=[to])
