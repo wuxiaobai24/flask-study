@@ -38,3 +38,19 @@ class ChangePasswordForm(FlaskForm):
     newpassword2 = PasswordField('Confirm password',validators = [Required(),
         Length(1,64)])
     submit = SubmitField('Change Password')
+
+class ResetPasswordForm(FlaskForm):
+    email = StringField('Your Email:',validators=[Required(),
+        Length(1,64),Email()])
+    submit = SubmitField('Submit')
+
+    def validate_email(self,field):
+        if User.query.filter_by(email=field.data).first() is None:
+            raise ValidationError('Can not find this email.')
+
+class ResetPasswordNowForm(FlaskForm):
+    newpassword = PasswordField('New Password',validators = [Required(),
+        Length(1,64),EqualTo('newpassword2','New passwords must match.')])
+    newpassword2 = PasswordField('Confirm password',validators = [Required(),
+        Length(1,64)])
+    submit = SubmitField('Change Password')

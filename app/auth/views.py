@@ -4,6 +4,7 @@ from . import auth
 from ..models import User
 from flask_login import login_required,current_user
 from .forms import LoginForm,RegistrationForm,ChangePasswordForm
+from .forms import ResetPasswordForm,ResetPasswordNowForm
 from .. import db
 from ..emails import send_mail
 # 保护路由
@@ -101,3 +102,56 @@ def change_password():
         flash('Chang Password Success!')
         return redirect(url_for('main.index'))
     return render_template('auth/change_password.html',form=form)
+
+#重设密码
+@auth.route('/reset_password',methods=['POST','GET'])
+def reset_password():
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        email = form.email.data
+        user = User.query.filter_by(email=email).first()
+        token = user.generate_confirmation_token()
+        user.confirmed = False
+        db.session.commit()
+        send_mail(email,'Reset Your Password',
+            'auth/email/reset_password',name = user.username ,token = token)
+        flash('A confirm email has been sent to you by email')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/reset_password.html',form = form)
+
+#重设密码 Confirm
+@auth.route('/confirm/<name>/<token>')
+def reset_password_confirm(name,token):
+    user = User.query.filter_by(username = name).first()
+    if user:
+        if user.confirmed:
+            return redirect(url_for('main.index'))
+        if user.confirm(token):
+            flash('You can reset your password now!')
+            return redirect(url_for('auth.reset_password_now',name=user.username))
+        else:
+            flash('The confirmation link is invaild or has expired.')
+            return redirect(url_for('auth.reset_password'))
+    else:
+        return render_template('404.html'),400
+
+#重设密码 now
+@auth.route('/reset_password/now/<name>',methods=['POST','GET'])
+def reset_password_now(name):
+    user = User.query.filter_by(username=name).first()
+    if user is None:
+        flash('User does not exist')
+        return redirect('main.index')
+    elif not user.confirmed:
+        flash('Reset error,please try again.')
+        return redirect('auth.reset_password')
+    else:
+        form = ResetPasswordNowForm()
+        if form.validate_on_submit():
+            user.password = form.newpassword.data
+            user.confirmed = True
+            db.session.commit()
+            flash('Reset Success!')
+            return redirect(url_for('auth.login'))
+
+        return render_template('auth/reset_password_now.html',form = form)
