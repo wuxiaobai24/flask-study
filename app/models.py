@@ -1,10 +1,11 @@
 from app import db
-from flask import current_app
+from flask import current_app,request
 from werkzeug.security import generate_password_hash, check_password_hash
 from . import login_manager
 from flask_login import UserMixin,AnonymousUserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer  as Serializer
 from datetime import datetime
+import hashlib #生成hash值
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -63,6 +64,7 @@ class User(UserMixin, db.Model):
     #db.Column的default可以接受函数，每次要生成default值是调用函数来生成
     member_since = db.Column(db.DateTime(),default=datetime.utcnow)#注册时间
     last_seen = db.Column(db.DateTime(),default=datetime.utcnow)#最后访问的时间
+    avatar_hash = db.Column(db.String(32))
 
     def ping(self):
         """刷新用户最后访问的时间"""
@@ -78,6 +80,10 @@ class User(UserMixin, db.Model):
                 self.role = Role.query.filter_by(permission=0xff).first()
             if self.role is None:
                 self.role = Role.query.filter_by(default=True).first()
+        if self.email is not None and self.avatar_hash is None:
+            self.avatar_hash = hashlib.md5(
+                self.email.encode('utf-8').hexdigest()
+            )
 
     def can(self,permission):
         return self.role is not None and \
@@ -117,6 +123,17 @@ class User(UserMixin, db.Model):
         db.session.commit()
         return True
 
+    #用来生成用户头像地址
+    def gravatar(self,size=100,default='identicon',rating='g'):
+        if request.is_secure:
+            url = 'https://secure.gravatar.com/avatar'
+        else:
+            url = 'http://www.gravatar.com/avatar'
+        hash = self.avatar_hash or hashlib.md5(
+                            self.email.encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(
+        url=url,hash=hash,size=size,default=default,rating=rating
+        )
 
 # 匿名访问者
 class AnonymousUser(AnonymousUserMixin):
